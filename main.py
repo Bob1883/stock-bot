@@ -237,8 +237,13 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
                     gathered_data["hold"].append(company)
                 elif action == 2:
                     gathered_data["sell"].append(company)
+ 
+            company_rank = gathered_data[company]["popularity"] / 3 + gathered_data[company]["traders"] / 100 
+            for n in range(len(gathered_data[company]["news"])): 
+                company_rank += gathered_data[company]["news"][n]
 
-            
+            company_rank = company_rank / (len(gathered_data[company]["news"])*3)
+
         os.system("clear || cls")
         print_colored("Algoritm done", "magenta")
         t.sleep(3)
@@ -248,7 +253,7 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
         if date == datetime.datetime.now():
             try:  
                 for company in gathered_data["buy"]:
-                    if money > gathered_data[company]["historical_data"][-1]:
+                    if money > gathered_data[company]["historical_data"][-1] and company_rank > 1 - gathered_data["risk"]:
                         api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='buy', type='market', time_in_force='day') 
                         gathered_data[company]["Log"].append(f"Bought {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
 

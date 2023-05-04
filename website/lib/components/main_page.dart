@@ -325,7 +325,7 @@ class _MainPageState extends State<MainPage> {
                       alignment: Alignment.center,
                       margin: const EdgeInsets.only(top: 20.0),
                       width: MediaQuery.of(context).size.width - 50,
-                      height: 430.0,
+                      height: MediaQuery.of(context).size.width * 0.5,
                       decoration: BoxDecoration(
                         color: const Color.fromARGB(255, 19, 27, 38),
                         borderRadius: BorderRadius.circular(40.0),
@@ -334,8 +334,9 @@ class _MainPageState extends State<MainPage> {
                         children: [
                           Text(
                             _isWeekly ? 'This week' : 'This month',
-                            style: const TextStyle(
-                              fontSize: 24.0,
+                            style: TextStyle(
+                              fontSize:
+                                  MediaQuery.of(context).size.width * 0.03,
                               color: Colors.white,
                             ),
                           ),
@@ -351,7 +352,8 @@ class _MainPageState extends State<MainPage> {
                                   animationDuration:
                                       const Duration(milliseconds: 1000),
                                   chartLegendSpacing: 32.0,
-                                  chartRadius: 300,
+                                  chartRadius:
+                                      MediaQuery.of(context).size.width * 0.34,
                                   colorList: colorList,
                                   initialAngleInDegree: 0,
                                   chartType: ChartType.disc,
@@ -373,8 +375,8 @@ class _MainPageState extends State<MainPage> {
                                   ),
                                 ),
                                 Container(
-                                  height: 300,
-                                  margin: const EdgeInsets.only(left: 20.0),
+                                  height: MediaQuery.of(context).size.width * 0.36,
+                                  margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
                                   child: Column(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -384,8 +386,14 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Container(
-                                            width: 20.0,
-                                            height: 20.0,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(
                                                   255, 35, 214, 9),
@@ -393,11 +401,16 @@ class _MainPageState extends State<MainPage> {
                                                   BorderRadius.circular(5.0),
                                             ),
                                           ),
-                                          const SizedBox(width: 20.0),
-                                          const Text(
+                                          SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.02),
+                                          Text(
                                             'Nvidia',
                                             style: TextStyle(
                                               color: Colors.white,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -405,8 +418,14 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Container(
-                                            width: 20.0,
-                                            height: 20.0,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(
                                                   255, 237, 38, 80),
@@ -414,11 +433,16 @@ class _MainPageState extends State<MainPage> {
                                                   BorderRadius.circular(5.0),
                                             ),
                                           ),
-                                          const SizedBox(width: 20.0),
-                                          const Text(
+                                          SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.02),
+                                           Text(
                                             'Tesla',
                                             style: TextStyle(
                                               color: Colors.white,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -426,8 +450,14 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Container(
-                                            width: 20.0,
-                                            height: 20.0,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(
                                                   255, 0, 81, 195),
@@ -435,11 +465,16 @@ class _MainPageState extends State<MainPage> {
                                                   BorderRadius.circular(5.0),
                                             ),
                                           ),
-                                          const SizedBox(width: 20.0),
-                                          const Text(
+                                          SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.02),
+                                           Text(
                                             'Applied materials',
                                             style: TextStyle(
                                               color: Colors.white,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -447,8 +482,14 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Container(
-                                            width: 20.0,
-                                            height: 20.0,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(
                                                   255, 217, 204, 0),
@@ -456,11 +497,16 @@ class _MainPageState extends State<MainPage> {
                                                   BorderRadius.circular(5.0),
                                             ),
                                           ),
-                                          const SizedBox(width: 20.0),
-                                          const Text(
+                                          SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.02),
+                                           Text(
                                             'Freeport-McMoRan',
                                             style: TextStyle(
                                               color: Colors.white,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -468,8 +514,14 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Container(
-                                            width: 20.0,
-                                            height: 20.0,
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.02,
                                             decoration: BoxDecoration(
                                               color: const Color.fromARGB(
                                                   255, 205, 2, 157),
@@ -477,11 +529,16 @@ class _MainPageState extends State<MainPage> {
                                                   BorderRadius.circular(5.0),
                                             ),
                                           ),
-                                          const SizedBox(width: 20.0),
-                                          const Text(
+                                          SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.02),
+                                           Text(
                                             'Lam Research',
                                             style: TextStyle(
                                               color: Colors.white,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -490,14 +547,14 @@ class _MainPageState extends State<MainPage> {
                                   ),
                                 ),
                                 Container(
-                                  margin: const EdgeInsets.only(
-                                      left: 20.0, right: 20.0),
+                                  margin:  EdgeInsets.only(
+                                      left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
                                   width: 1,
-                                  height: 300,
+                                  height: MediaQuery.of(context).size.width * 0.36,
                                   color: Colors.white,
                                 ),
                                 SizedBox(
-                                  height: 300,
+                                  height: MediaQuery.of(context).size.width * 0.36,
                                   child: Column(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -516,21 +573,23 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           Text(
                                             '${_percentage.toStringAsFixed(2)}%',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                           Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 20.0, right: 20.0),
-                                            width: 100,
+                                            margin: EdgeInsets.only(
+                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                            width: MediaQuery.of(context).size.width * 0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                          const Text(
+                                           Text(
                                             '100kr',
                                             style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -547,21 +606,23 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           Text(
                                             '${_percentage.toStringAsFixed(2)}%',
-                                            style: const TextStyle(
+                                            style:  TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                           Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 20.0, right: 20.0),
-                                            width: 100,
+                                            margin: EdgeInsets.only(
+                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                            width: MediaQuery.of(context).size.width * 0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                          const Text(
+                                           Text(
                                             '100kr',
                                             style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -578,21 +639,23 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           Text(
                                             '${_percentage.toStringAsFixed(2)}%',
-                                            style: const TextStyle(
+                                            style:  TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                           Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 20.0, right: 20.0),
-                                            width: 100,
+                                            margin: EdgeInsets.only(
+                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                            width: MediaQuery.of(context).size.width * 0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                          const Text(
+                                           Text(
                                             '100kr',
                                             style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -609,21 +672,23 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           Text(
                                             '${_percentage.toStringAsFixed(2)}%',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                           Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 20.0, right: 20.0),
-                                            width: 100,
+                                                          margin: EdgeInsets.only(
+                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                            width: MediaQuery.of(context).size.width * 0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                          const Text(
+                                           Text(
                                             '100kr',
                                             style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
@@ -640,21 +705,23 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                           Text(
                                             '${_percentage.toStringAsFixed(2)}%',
-                                            style: const TextStyle(
+                                            style:  TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                           Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 20.0, right: 20.0),
-                                            width: 100,
+                                            margin: EdgeInsets.only(
+                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                            width: MediaQuery.of(context).size.width * 0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                          const Text(
+                                           Text(
                                             '100kr',
                                             style: TextStyle(
                                               color: Colors.green,
+                                              fontSize: MediaQuery.of(context).size.width * 0.015,
                                             ),
                                           ),
                                         ],
