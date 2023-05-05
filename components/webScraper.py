@@ -20,7 +20,7 @@ chrome_options.add_argument("--ignore-certificate-errors")
 chrome_options.add_argument("--incognito")
 chrome_options.add_argument("--headless")
 
-webdriver_path = "C:/Mina_project/MOney/marketBot/assets/chromedriver.exe"
+webdriver_path = "./assets/chromedriver.exe"
 driver = webdriver.Chrome(executable_path=webdriver_path, options=chrome_options)
 
 def get_historical_data(company, end_date, api, gathered_data, lookback_period=1.5):
@@ -137,7 +137,6 @@ def get_political_data(date, company, gathered_data):
     # find the popularity by finding all the elements with classes range-icon__symbol range-icon__symbol--50 range-icon__symbol--without-gap
 
     popularity = driver.find_elements(By.CLASS_NAME, "range-icon__symbol range-icon__symbol--50 range-icon__symbol--without-gap")
-    print(len(popularity))
 
     gathered_data[company]["popularity"] = len(popularity)/3
 
@@ -167,7 +166,5 @@ def web_scraping_main(companys_array, gathered_data, end_date, NEWS_API_KEY, api
         gathered_data = get_political_data(end_date, company, gathered_data)
         if end_date == datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+00:00'):
             gathered_data = get_bot_predictions(company, gathered_data)
-        else: 
-            print(end_date + datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+00:00'))
 
     return gathered_data

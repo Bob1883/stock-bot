@@ -56,4 +56,12 @@ gathered_data = {
         "Lam Research": 0,
         "total": 0,
     },
+    "percentages": {
+        "Applied Materials": 0,
+        "Nvidia": 0,
+        "Lam Research": 0,
+        "total": 0, 
+    },
+    "weekly_data": [],
+    "monthly_data": []
 }

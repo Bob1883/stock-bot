@@ -4,11 +4,14 @@ import 'package:custom_sliding_segmented_control/custom_sliding_segmented_contro
 import 'package:chart_sparkline/chart_sparkline.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import 'package:dio/dio.dart';
 
 class MainPage extends StatefulWidget {
   final Map<String, dynamic> data;
+  final String apiKey;
 
-  const MainPage({Key? key, required this.data}) : super(key: key);
+  const MainPage({Key? key, required this.data, required this.apiKey})
+      : super(key: key);
 
   @override
   // ignore: library_private_types_in_public_api
@@ -17,39 +20,171 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   final dataMap = <String, double>{
-    "Nvidia": 5,
-    "Tesla": 3,
-    "Applied_materials": 2,
-    "Freeport_McMoRan": 1,
-    "Lam_Research": 6,
+    "Nvidia": 0,
+    "Tesla": 0,
+    "Applied_materials": 0,
+    "Lam_Research": 0,
   };
+
   final colorList = <Color>[
     const Color(0xff23D609),
     const Color(0xffED2650),
     const Color(0xff0051C3),
-    const Color(0xffD9CC00),
     const Color(0xffCE029D),
   ];
+
   bool _isWeekly = true;
   bool botActive = true;
   bool playgroundActive = true;
+
   double _money = 0.0;
   double _risk = 0;
-  final double _percentage = 12.0;
+
   TextEditingController maxBuyController = TextEditingController(text: '500');
   TextEditingController maxLossController = TextEditingController(text: '5');
+
   late dynamic data;
-  //get width of screen
+  late String apiKey;
+
+  late double nvidiaPercentage;
+  late double teslaPercentage;
+  late double appliedMaterialsPercentage;
+  late double lamResearchPercentage;
+  late double totalPercentage;
+
+  late List sold;
+  late List bought;
+  late List kept;
+  late List log;
+
+  late List<double> _weeklyData;
+  late List<double> _monthlyData;
+
+  late double _weeklyLow;
+  late double _weeklyHigh;
+
+  late double _monthlyLow;
+  late double _monthlyHigh;
+
+  Map<String, double> newSettings = <String, double>{
+    "max_spending": 0,
+    "risk": 0,
+    "max_loss": 0,
+    "active": 1,
+    "playground": 1,
+  };
+
+  Future _updateSettings(BuildContext context) async {
+    try {
+      Dio dio = Dio();
+      Response response = await dio.post(
+          "http://localhost:5000/$apiKey/update_settings",
+          data: newSettings);
+      if (response.statusCode == 200) {
+        // popup saying settings updated
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Settings updated'),
+              content: const Text('Your settings have been updated.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Settings error',
+                  style: TextStyle(color: Colors.red)),
+              content: const Text(
+                  'You can only update your settings when in admin mode.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } on DioError {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Incorrect code'),
+            content: const Text('Please try again.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     data = widget.data;
+    apiKey = widget.apiKey;
 
     _money = data['money'];
     _risk = data['risk'];
+
     maxBuyController.text = data['max_spending'].toString();
     maxLossController.text = data['max_loss'].toString();
+
+    newSettings['max_spending'] = data['max_spending'];
+    newSettings['risk'] = data['risk'];
+    newSettings['max_loss'] = data['max_loss'];
+
+    sold = data['sell'];
+    bought = data['buy'];
+    kept = data['keep'];
+    log = data['Log'];
+
+    nvidiaPercentage = data['percentages']['Nvidia'];
+    teslaPercentage = data['percentages']['Tesla'];
+    appliedMaterialsPercentage = data['percentages']['Applied Materials'];
+    lamResearchPercentage = data['percentages']['Lam Research'];
+    totalPercentage = data['percentages']['total'];
+
+    //add data to dataMap
+    dataMap['Nvidia'] = nvidiaPercentage;
+    dataMap['Tesla'] = teslaPercentage;
+    dataMap['Applied_materials'] = appliedMaterialsPercentage;
+    dataMap['Lam_Research'] = lamResearchPercentage;
+
+    // change _weeklyData and _monthlyData to the actual data. They are list of dynamic so they need to be changed to list of double
+    _weeklyData = data['weekly_data'].cast<double>();
+    _monthlyData = data['monthly_data'].cast<double>();
+
+    _weeklyLow = _weeklyData.reduce((curr, next) => curr < next ? curr : next);
+    _weeklyHigh = _weeklyData.reduce((curr, next) => curr > next ? curr : next);
+
+    _monthlyLow =
+        _monthlyData.reduce((curr, next) => curr < next ? curr : next);
+    _monthlyHigh =
+        _monthlyData.reduce((curr, next) => curr > next ? curr : next);
 
     Timer.periodic(const Duration(minutes: 5), (timer) {
       _updateData();
@@ -91,16 +226,17 @@ class _MainPageState extends State<MainPage> {
                         Row(
                           children: [
                             Icon(
-                              _percentage >= 0
+                              totalPercentage >= 0
                                   ? Icons.arrow_drop_up
                                   : Icons.arrow_drop_down,
-                              color:
-                                  _percentage >= 0 ? Colors.green : Colors.red,
+                              color: totalPercentage >= 0
+                                  ? Colors.green
+                                  : Colors.red,
                             ),
                             Text(
-                              '${_percentage.abs().toStringAsFixed(2)}%',
+                              '${totalPercentage.abs().toStringAsFixed(2)}%',
                               style: TextStyle(
-                                color: _percentage >= 0
+                                color: totalPercentage >= 0
                                     ? Colors.green
                                     : Colors.red,
                               ),
@@ -173,52 +309,64 @@ class _MainPageState extends State<MainPage> {
                               Column(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
-                                children: const [
+                                children: [
                                   Text(
-                                    '12%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '$_weeklyHigh%'
+                                        : '$_monthlyHigh%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '10%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '${_weeklyHigh / 5 * 4}%'
+                                        : '${_monthlyHigh / 5 * 4}%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '8%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '${_weeklyHigh / 5 * 3}%'
+                                        : '${_monthlyHigh / 5 * 3}%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '6%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '${_weeklyHigh / 5 * 3}%'
+                                        : '${_monthlyHigh / 5 * 3}%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '4%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '${_weeklyHigh / 5 * 2}%'
+                                        : '${_monthlyHigh / 5 * 2}%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '2%',
-                                    style: TextStyle(
+                                    _isWeekly
+                                        ? '${_weeklyHigh / 5}%'
+                                        : '${_monthlyHigh / 5}%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
                                   ),
                                   Text(
-                                    '0%',
-                                    style: TextStyle(
+                                    _isWeekly ? '$_weeklyLow%' : '$_monthlyLow%',
+                                    style: const TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
                                     ),
@@ -236,7 +384,9 @@ class _MainPageState extends State<MainPage> {
                                       useCubicSmoothing: true,
                                       cubicSmoothingFactor: 0.2,
                                       lineWidth: 3,
-                                      data: const [1, 2, 3, 1, 2],
+                                      data: _isWeekly
+                                          ? _weeklyData
+                                          : _monthlyData,
                                       lineColor:
                                           const Color.fromARGB(255, 0, 78, 204),
                                       fillMode: FillMode.below,
@@ -249,22 +399,6 @@ class _MainPageState extends State<MainPage> {
                                         ],
                                       ),
                                     ),
-                                    // Sparkline(
-                                    //   useCubicSmoothing: true,
-                                    //   cubicSmoothingFactor: 0.2,
-                                    //   lineWidth: 3,
-                                    //   data: const [4, 2, 5, 3, 4],
-                                    //   lineColor: Colors.yellow,
-                                    //   fillMode: FillMode.below,
-                                    //   fillGradient: LinearGradient(
-                                    //     begin: Alignment.topCenter,
-                                    //     end: Alignment.bottomCenter,
-                                    //     colors: [
-                                    //       Colors.yellow.withOpacity(0.5),
-                                    //       Colors.transparent
-                                    //     ],
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               ),
@@ -333,7 +467,7 @@ class _MainPageState extends State<MainPage> {
                       child: Column(
                         children: [
                           Text(
-                            _isWeekly ? 'This week' : 'This month',
+                            'Total',
                             style: TextStyle(
                               fontSize:
                                   MediaQuery.of(context).size.width * 0.03,
@@ -375,8 +509,11 @@ class _MainPageState extends State<MainPage> {
                                   ),
                                 ),
                                 Container(
-                                  height: MediaQuery.of(context).size.width * 0.36,
-                                  margin: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.02),
+                                  height:
+                                      MediaQuery.of(context).size.width * 0.36,
+                                  margin: EdgeInsets.only(
+                                      left: MediaQuery.of(context).size.width *
+                                          0.02),
                                   child: Column(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -410,7 +547,10 @@ class _MainPageState extends State<MainPage> {
                                             'Nvidia',
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -438,11 +578,14 @@ class _MainPageState extends State<MainPage> {
                                                       .size
                                                       .width *
                                                   0.02),
-                                           Text(
+                                          Text(
                                             'Tesla',
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -470,43 +613,14 @@ class _MainPageState extends State<MainPage> {
                                                       .size
                                                       .width *
                                                   0.02),
-                                           Text(
+                                          Text(
                                             'Applied materials',
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Row(
-                                        children: [
-                                          Container(
-                                            width: MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                0.02,
-                                            height: MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                0.02,
-                                            decoration: BoxDecoration(
-                                              color: const Color.fromARGB(
-                                                  255, 217, 204, 0),
-                                              borderRadius:
-                                                  BorderRadius.circular(5.0),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                              width: MediaQuery.of(context)
+                                              fontSize: MediaQuery.of(context)
                                                       .size
                                                       .width *
-                                                  0.02),
-                                           Text(
-                                            'Freeport-McMoRan',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -534,11 +648,14 @@ class _MainPageState extends State<MainPage> {
                                                       .size
                                                       .width *
                                                   0.02),
-                                           Text(
+                                          Text(
                                             'Lam Research',
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -547,14 +664,19 @@ class _MainPageState extends State<MainPage> {
                                   ),
                                 ),
                                 Container(
-                                  margin:  EdgeInsets.only(
-                                      left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
+                                  margin: EdgeInsets.only(
+                                      left: MediaQuery.of(context).size.width *
+                                          0.02,
+                                      right: MediaQuery.of(context).size.width *
+                                          0.02),
                                   width: 1,
-                                  height: MediaQuery.of(context).size.width * 0.36,
+                                  height:
+                                      MediaQuery.of(context).size.width * 0.36,
                                   color: Colors.white,
                                 ),
                                 SizedBox(
-                                  height: MediaQuery.of(context).size.width * 0.36,
+                                  height:
+                                      MediaQuery.of(context).size.width * 0.36,
                                   child: Column(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -564,32 +686,48 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Icon(
-                                            _percentage >= 0
+                                            nvidiaPercentage >= 0
                                                 ? Icons.arrow_drop_up
                                                 : Icons.arrow_drop_down,
-                                            color: _percentage >= 0
+                                            color: nvidiaPercentage >= 0
                                                 ? Colors.green
                                                 : Colors.red,
                                           ),
                                           Text(
-                                            '${_percentage.toStringAsFixed(2)}%',
+                                            '${nvidiaPercentage.toStringAsFixed(2)}%',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                           Container(
                                             margin: EdgeInsets.only(
-                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
-                                            width: MediaQuery.of(context).size.width * 0.1,
+                                                left: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02,
+                                                right: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02),
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                           Text(
-                                            '100kr',
+                                          Text(
+                                            '${nvidiaPercentage * _money}kr',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -597,32 +735,48 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Icon(
-                                            _percentage >= 0
+                                            teslaPercentage >= 0
                                                 ? Icons.arrow_drop_up
                                                 : Icons.arrow_drop_down,
-                                            color: _percentage >= 0
+                                            color: teslaPercentage >= 0
                                                 ? Colors.green
                                                 : Colors.red,
                                           ),
                                           Text(
-                                            '${_percentage.toStringAsFixed(2)}%',
-                                            style:  TextStyle(
+                                            '${teslaPercentage.toStringAsFixed(2)}%',
+                                            style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                           Container(
                                             margin: EdgeInsets.only(
-                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
-                                            width: MediaQuery.of(context).size.width * 0.1,
+                                                left: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02,
+                                                right: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02),
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                           Text(
-                                            '100kr',
+                                          Text(
+                                            '${teslaPercentage * _money}kr',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -630,32 +784,49 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Icon(
-                                            _percentage >= 0
+                                            appliedMaterialsPercentage >= 0
                                                 ? Icons.arrow_drop_up
                                                 : Icons.arrow_drop_down,
-                                            color: _percentage >= 0
-                                                ? Colors.green
-                                                : Colors.red,
+                                            color:
+                                                appliedMaterialsPercentage >= 0
+                                                    ? Colors.green
+                                                    : Colors.red,
                                           ),
                                           Text(
-                                            '${_percentage.toStringAsFixed(2)}%',
-                                            style:  TextStyle(
+                                            '${appliedMaterialsPercentage.toStringAsFixed(2)}%',
+                                            style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                           Container(
                                             margin: EdgeInsets.only(
-                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
-                                            width: MediaQuery.of(context).size.width * 0.1,
+                                                left: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02,
+                                                right: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02),
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                           Text(
-                                            '100kr',
+                                          Text(
+                                            '${appliedMaterialsPercentage * _money}kr',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
@@ -663,80 +834,52 @@ class _MainPageState extends State<MainPage> {
                                       Row(
                                         children: [
                                           Icon(
-                                            _percentage >= 0
+                                            lamResearchPercentage >= 0
                                                 ? Icons.arrow_drop_up
                                                 : Icons.arrow_drop_down,
-                                            color: _percentage >= 0
+                                            color: lamResearchPercentage >= 0
                                                 ? Colors.green
                                                 : Colors.red,
                                           ),
                                           Text(
-                                            '${_percentage.toStringAsFixed(2)}%',
+                                            '${lamResearchPercentage.toStringAsFixed(2)}%',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
-                                            ),
-                                          ),
-                                          Container(
-                                                          margin: EdgeInsets.only(
-                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
-                                            width: MediaQuery.of(context).size.width * 0.1,
-                                            height: 1,
-                                            color: Colors.white,
-                                          ),
-                                           Text(
-                                            '100kr',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            _percentage >= 0
-                                                ? Icons.arrow_drop_up
-                                                : Icons.arrow_drop_down,
-                                            color: _percentage >= 0
-                                                ? Colors.green
-                                                : Colors.red,
-                                          ),
-                                          Text(
-                                            '${_percentage.toStringAsFixed(2)}%',
-                                            style:  TextStyle(
-                                              color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                           Container(
                                             margin: EdgeInsets.only(
-                                                left: MediaQuery.of(context).size.width * 0.02, right: MediaQuery.of(context).size.width * 0.02),
-                                            width: MediaQuery.of(context).size.width * 0.1,
+                                                left: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02,
+                                                right: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.02),
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.1,
                                             height: 1,
                                             color: Colors.white,
                                           ),
-                                           Text(
-                                            '100kr',
+                                          Text(
+                                            '${lamResearchPercentage * _money}kr',
                                             style: TextStyle(
                                               color: Colors.green,
-                                              fontSize: MediaQuery.of(context).size.width * 0.015,
+                                              fontSize: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.015,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      // Container(
-                                      //   width: 280,
-                                      //   alignment: Alignment.center,
-                                      //   child: Text(
-                                      //     "2000kr",
-                                      //     style: TextStyle(
-                                      //       color: Colors.white,
-                                      //       fontSize: 20,
-                                      //     ),
-                                      //   ),
-                                      // ),
                                     ],
                                   ),
                                 ),
@@ -775,7 +918,27 @@ class _MainPageState extends State<MainPage> {
                                   height: 1,
                                   width: 250,
                                   color: Colors.white,
-                                )
+                                ),
+                                Column(
+                                  children: [
+                                    for (int i = 0; i < bought.length; i++)
+                                      Row(
+                                        children: [
+                                          Container(
+                                            margin: const EdgeInsets.only(
+                                                top: 45.0),
+                                          ),
+                                          Text(
+                                            bought[i],
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -803,7 +966,27 @@ class _MainPageState extends State<MainPage> {
                                   height: 1,
                                   width: 250,
                                   color: Colors.white,
-                                )
+                                ),
+                                Column(
+                                  children: [
+                                    for (int i = 0; i < sold.length; i++)
+                                      Row(
+                                        children: [
+                                          Container(
+                                            margin: const EdgeInsets.only(
+                                                top: 45.0),
+                                          ),
+                                          Text(
+                                            sold[i],
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -831,7 +1014,27 @@ class _MainPageState extends State<MainPage> {
                                   height: 1,
                                   width: 250,
                                   color: Colors.white,
-                                )
+                                ),
+                                Column(
+                                  children: [
+                                    for (int i = 0; i < kept.length; i++)
+                                      Row(
+                                        children: [
+                                          Container(
+                                            margin: const EdgeInsets.only(
+                                                top: 45.0),
+                                          ),
+                                          Text(
+                                            kept[i],
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -861,7 +1064,34 @@ class _MainPageState extends State<MainPage> {
                             height: 1,
                             width: MediaQuery.of(context).size.width - 150,
                             color: Colors.white,
-                          )
+                          ),
+                          Row(
+                            children: [
+                              Column(
+                                children: [
+                                  //for n in ragne 0 to log.length and it can max be 10
+                                  if (log.length > 10)
+                                    for (int i = 0; i < 10; i++)
+                                      Text(
+                                        log[i],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                        ),
+                                      )
+                                  else
+                                    for (int i = 0; i < log.length; i++)
+                                      Text(
+                                        log[i],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -952,6 +1182,17 @@ class _MainPageState extends State<MainPage> {
                                           ),
                                         ),
                                       ),
+                                      //on change end then change the risk value in new data and activate the _updateSettings
+                                      onChangeEnd: (double value) {
+                                        setState(() {
+                                          _risk = value;
+                                          //round the value and change it to a double
+                                          newSettings["risk"] = double.parse(
+                                              _risk.toStringAsFixed(0));
+
+                                          _updateSettings(context);
+                                        });
+                                      },
                                     ),
                                   ],
                                 ),
@@ -985,6 +1226,9 @@ class _MainPageState extends State<MainPage> {
                                                   onChanged: (value) {
                                                     setState(() {
                                                       botActive = value;
+                                                      newSettings["active"] =
+                                                          botActive ? 1 : 0;
+                                                      _updateSettings(context);
                                                     });
                                                   },
                                                   activeTrackColor:
@@ -1022,6 +1266,12 @@ class _MainPageState extends State<MainPage> {
                                                   onChanged: (value) {
                                                     setState(() {
                                                       playgroundActive = value;
+                                                      newSettings[
+                                                              "playground"] =
+                                                          playgroundActive
+                                                              ? 1
+                                                              : 0;
+                                                      _updateSettings(context);
                                                     });
                                                   },
                                                   activeTrackColor:
@@ -1074,6 +1324,14 @@ class _MainPageState extends State<MainPage> {
                                                   fontSize: 18,
                                                 ),
                                                 onChanged: (String max) {},
+                                                onSubmitted: (String max) {
+                                                  setState(() {
+                                                    newSettings[
+                                                            "max_spending"] =
+                                                        double.parse(max);
+                                                    _updateSettings(context);
+                                                  });
+                                                },
                                               ),
                                             ),
                                             const SizedBox(
@@ -1107,35 +1365,19 @@ class _MainPageState extends State<MainPage> {
                                                   fontSize: 18,
                                                 ),
                                                 onChanged: (String max) {},
+                                                onSubmitted: (String max) {
+                                                  setState(() {
+                                                    newSettings["max_loss"] =
+                                                        double.parse(max);
+                                                    _updateSettings(context);
+                                                  });
+                                                },
                                               ),
                                             ),
                                           ],
                                         ),
                                       ],
                                     ),
-                                    // SizedBox(
-                                    //   height: 20,
-                                    // ),
-                                    // Container(
-                                    //   width: 200,
-                                    //   height: 50,
-                                    //   margin: EdgeInsets.all(20),
-                                    //   decoration: BoxDecoration(
-                                    //     color: Color.fromARGB(255, 44, 70, 112),
-                                    //     borderRadius: BorderRadius.circular(10),
-                                    //   ),
-                                    //   child: TextButton(
-                                    //     onPressed: () {},
-                                    //     child: Text(
-                                    //       'Start prediction',
-                                    //       style: TextStyle(
-                                    //         color: Colors.white,
-                                    //         fontSize: 16,
-                                    //         fontWeight: FontWeight.bold,
-                                    //       ),
-                                    //     ),
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               ],

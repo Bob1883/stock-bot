@@ -17,7 +17,7 @@ class LoginPage extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => MainPage(data: response.data),
+            builder: (context) => MainPage(data: response.data, apiKey: _apiKeyController.text),
           ),
         );
       } else {

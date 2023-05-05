@@ -30,10 +30,8 @@ def title_to_sentiment(data, companys_array, OPENAI_API_KEY):
         for news in data[company]["news"]:
             if news != None:
                 try:
-                    n = get_sentiment(news, OPENAI_API_KEY)
-                    #exchange the news with the sentiment
-                    data[company]["news"][data[company]["news"].index(news)] = n
-                    print("n")
+                    data[company]["news"][data[company]["news"].index(news)] = get_sentiment(news, OPENAI_API_KEY)
+                    print('*')
                 except:
                     print("error")
                     data[company]["news"][data[company]["news"].index(news)] = "error"

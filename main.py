@@ -23,7 +23,7 @@ from components.data import *
 
 ### Traning settings ###
 date = datetime.datetime.strptime('2018-01-31T00:00:00+00:00', '%Y-%m-%dT%H:%M:%S+00:00') #date to start training from
-time = 1                                                                                  #How often it takes data, evry 1h
+hour_index = 0                                                                            #hour from start of day
 
 ### Settings ###
 max_spending = 1000  #max spending per trade
@@ -46,6 +46,7 @@ APCA_API_SECRET_KEY = os.getenv("ALPACA_API_SECRET_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 FLASK_SERVER_KEY = os.getenv("FLASK_SERVER_KEY")
+FLASK_SERVER_GUEST_KEY = os.getenv("FLASK_SERVER_GUEST_KEY")
 
 api = tradeapi.REST(APCA_API_KEY_ID, APCA_API_SECRET_KEY, APCA_API_BASE_URL, api_version='v2')
 
@@ -71,31 +72,55 @@ def get_data():
 
 @app2_blueprint.route('/update_settings', methods = ['POST'])
 def update_settings():
+
     if request.method == 'POST':
+
         settings = request.get_json()
+
         try:
+            with open("gathered_data.json", "r") as f:
+                gathered_data = json.load(f)
+            
+            gathered_data["max_spending"] = settings["max_spending"]
+            gathered_data["risk"] = settings["risk"]
+            gathered_data["max_loss"] = settings["max_loss"]
+
+            print(settings["risk"])
+
             with open("gathered_data.json", "w") as f:
-                json.dump(settings, f, indent=4)
+                json.dump(gathered_data, f, indent=4)
+
             return "Settings updated"
+        
         except Exception as e:
             print(e)
             return "No settings file found"
+        
     else:
         return "Error updating settings: " + request.method
 
-@app3_blueprint.route('/test_connection')
-def test_connection():
-    return "Connected"
+@app3_blueprint.route('/get_data', methods = ['GET'])
+def get_data2():
+    if request.method == 'GET':
+        try:
+            with open("gathered_data.json", "r") as f:
+                gathered_data = json.load(f)
+            return jsonify(gathered_data) 
+        except Exception as e:
+            print(e)
+            return "No data found"
+    else: 
+        return "Error getting data " + request.method
 
 def flask_server():
     CORS(app)
     app.register_blueprint(app1_blueprint, url_prefix=f'/{FLASK_SERVER_KEY}')
     app.register_blueprint(app2_blueprint, url_prefix=f'/{FLASK_SERVER_KEY}')
-    app.register_blueprint(app3_blueprint, url_prefix=f'/{FLASK_SERVER_KEY}')
+    app.register_blueprint(app3_blueprint, url_prefix=f'/{FLASK_SERVER_GUEST_KEY}')
     app.run(host='0.0.0.0', port=5000)
 
 ### Main loop ###
-def main_loop(running, gathered_data, companys_array, starting_money, money, date):
+def main_loop(running, gathered_data, companys_array, starting_money, money, date, hour_index):
     while running:
 
         ### Get data ###
@@ -234,11 +259,11 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
                 if action == 0:
                     gathered_data["buy"].append(company)
                 elif action == 1:
-                    gathered_data["hold"].append(company)
+                    gathered_data["keep"].append(company)
                 elif action == 2:
                     gathered_data["sell"].append(company)
  
-            company_rank = gathered_data[company]["popularity"] / 3 + gathered_data[company]["traders"] / 100 
+            company_rank = gathered_data[company]["popularity"] / 3 + gathered_data[company]["traders"][0] / 100 
             for n in range(len(gathered_data[company]["news"])): 
                 company_rank += gathered_data[company]["news"][n]
 
@@ -259,7 +284,10 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
 
                 for company in gathered_data["sell"] and gathered_data[company]["money_spent"] != 0 and gathered_data[company]["historical_data"][-1] * gathered_data["max_loss"] > gathered_data[company]["money_spent"]:
                     api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='sell', type='market', time_in_force='day')
-                    gathered_data["ernings"][company] +=  round(((gathered_data[company]["historical_data"][-1] / gathered_data[company]["money_spent"]) - 1) * 100)
+                    gathered_data["ernings"][company] +=  gathered_data[company]["historical_data"][-1] - gathered_data[company]["money_spent"]
+                    gathered_data["ennings"]["total"] += gathered_data["ernings"][company]
+                    gathered_data["percentages"][company] = round((gathered_data[company]["historical_data"][-1] / gathered_data[company]["money_spent"] - 1) * 100)
+                    gathered_data["percentages"]["total"] = gathered_data["percentages"]["total"] + gathered_data["percentages"][company]
                     gathered_data[company]["money_spent"] = 0
                     gathered_data[company]["Log"].append(f"Sold {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
 
@@ -305,13 +333,31 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
 
 
         if date == datetime.datetime.now(): 
+
+            hour_index += 1
+
+            if hour_index != 24: 
+                gathered_data["weekly_data"][-1] += gathered_data["money"] - starting_money
+                gathered_data["monthly_data"][-1] += gathered_data["money"] - starting_money
+
+            else: 
+                hour_index = 0
+
+                if len(gathered_data["weekly_data"]) == 7:
+                    gathered_data["weekly_data"].pop(0)
+                    gathered_data["weekly_data"].append(gathered_data["money"] - starting_money)
+
+                if len(gathered_data["monthly_data"]) == 30:
+                    gathered_data["monthly_data"].pop(0)
+                    gathered_data["monthly_data"].append(gathered_data["money"] - starting_money)
+
             for n in range(60):
                 print(f"\033[1mTime left: {60-n} min\033[0m", end="\r")
                 t.sleep(60)
 
 
 if __name__ == "__main__":
-    main_loop_thread = threading.Thread(target=main_loop, args=(running, gathered_data, companys_array, starting_money, money, date),  daemon=True)
+    main_loop_thread = threading.Thread(target=main_loop, args=(running, gathered_data, companys_array, starting_money, money, date, hour_index),  daemon=True)
     main_loop_thread.start()
 
     flask_server()
