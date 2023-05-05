@@ -122,6 +122,8 @@ def flask_server():
 ### Main loop ###
 def main_loop(running, gathered_data, companys_array, starting_money, money, date, hour_index):
     while running:
+        if date == datetime.datetime.now():
+            break
 
         ### Get data ###
         try:
@@ -179,15 +181,16 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
             print_colored("Scraping done", "magenta")
             t.sleep(3)
 
-            ### Get sentiment ###
-            data = sentimentAnalysis.title_to_sentiment(raw_data, companys_array, OPENAI_API_KEY)
-            print_colored("Sentiment done", "magenta")
-            t.sleep(3)
+            # ### Get sentiment ###
+            # data = sentimentAnalysis.title_to_sentiment(raw_data, companys_array, OPENAI_API_KEY)
+            # print_colored("Sentiment done", "magenta")
+            # t.sleep(3)
             
-            ### Process data ###
-            gathered_data = dataP.data_preprocess(gathered_data, companys_array)
-            print_colored("Preprocess done", "magenta")
-            t.sleep(3)
+            # ### Process data ###
+            # gathered_data = dataP.data_preprocess(gathered_data, companys_array)
+            # print_colored("Preprocess done", "magenta")
+            # t.sleep(3)
+            pass
 
         except Exception as e:     
             print_colored(e, "red")
@@ -208,11 +211,17 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
         ### Start bot ###
         # credit to https://vadim.me/publications/heartpole/ for parts of the code
         for company in companys_array:
+
+            end_date = datetime.datetime.strptime(date.strftime('%Y-%m-%dT%H:%M:%S+00:00'), '%Y-%m-%dT%H:%M:%S+00:00')
+            start_date = end_date - datetime.timedelta(days=2 * 365)
+            start_date = start_date.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            end_date = end_date.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+            
             data = api.get_bars(
                 gathered_data[company]["symbol"],
                 TimeFrame.Hour,
-                start='2018-02-02T00:00:00+00:00',
-                end='2021-05-02T00:00:00+00:00',
+                start=start_date,
+                end=end_date,
                 adjustment='raw'
             ).df
 
@@ -233,7 +242,6 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
 
             if os.path.exists("BOT.zip"):
                 model = A2C.load("BOT.zip", env=env)
-
             else:
                 model = A2C('MlpPolicy', env, verbose=1)
             
@@ -257,17 +265,35 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
 
             if date != datetime.datetime.now():
                 if action == 0:
-                    gathered_data["buy"].append(company)
-                elif action == 1:
-                    gathered_data["keep"].append(company)
-                elif action == 2:
-                    gathered_data["sell"].append(company)
- 
-            company_rank = gathered_data[company]["popularity"] / 3 + gathered_data[company]["traders"][0] / 100 
-            for n in range(len(gathered_data[company]["news"])): 
-                company_rank += gathered_data[company]["news"][n]
+                    if company not in gathered_data["buy"]:
+                        gathered_data["buy"].append(company)
+                    if company in gathered_data["sell"]:
+                        gathered_data["sell"].remove(company)
+                    elif company in gathered_data["keep"]:
+                        gathered_data["keep"].remove(company)
 
-            company_rank = company_rank / (len(gathered_data[company]["news"])*3)
+                elif action == 1:
+                    if company not in gathered_data["keep"]:
+                        gathered_data["keep"].append(company)
+                    if company in gathered_data["sell"]:
+                        gathered_data["sell"].remove(company)
+                    elif company in gathered_data["buy"]:
+                        gathered_data["buy"].remove(company)
+
+                elif action == 2:
+                    if company not in gathered_data["sell"]:
+                        gathered_data["sell"].append(company)
+                    if company in gathered_data["buy"]:
+                        gathered_data["buy"].remove(company)
+                    elif company in gathered_data["keep"]:
+                        gathered_data["keep"].remove(company)
+ 
+            # company_rank = gathered_data[company]["popularity"] / 3 + gathered_data[company]["traders"][0] / 100 
+
+            # for n in range(len(gathered_data[company]["news"])): 
+            #     company_rank += gathered_data[company]["news"][n]
+
+            # company_rank = company_rank / (len(gathered_data[company]["news"])*3)
 
         os.system("clear || cls")
         print_colored("Algoritm done", "magenta")
@@ -275,29 +301,29 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
 
 
         ### Make trades ###
-        if date == datetime.datetime.now():
-            try:  
-                for company in gathered_data["buy"]:
-                    if money > gathered_data[company]["historical_data"][-1] and company_rank > 1 - gathered_data["risk"]:
-                        api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='buy', type='market', time_in_force='day') 
-                        gathered_data[company]["Log"].append(f"Bought {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
+        # if date == datetime.datetime.now():
+        #     try:  
+        #         for company in gathered_data["buy"]:
+        #             if money > gathered_data[company]["historical_data"][-1] and company_rank > 1 - gathered_data["risk"]:
+        #                 api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='buy', type='market', time_in_force='day') 
+        #                 gathered_data[company]["Log"].append(f"Bought {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
 
-                for company in gathered_data["sell"] and gathered_data[company]["money_spent"] != 0 and gathered_data[company]["historical_data"][-1] * gathered_data["max_loss"] > gathered_data[company]["money_spent"]:
-                    api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='sell', type='market', time_in_force='day')
-                    gathered_data["ernings"][company] +=  gathered_data[company]["historical_data"][-1] - gathered_data[company]["money_spent"]
-                    gathered_data["ennings"]["total"] += gathered_data["ernings"][company]
-                    gathered_data["percentages"][company] = round((gathered_data[company]["historical_data"][-1] / gathered_data[company]["money_spent"] - 1) * 100)
-                    gathered_data["percentages"]["total"] = gathered_data["percentages"]["total"] + gathered_data["percentages"][company]
-                    gathered_data[company]["money_spent"] = 0
-                    gathered_data[company]["Log"].append(f"Sold {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
+        #         for company in gathered_data["sell"] and gathered_data[company]["money_spent"] != 0 and gathered_data[company]["historical_data"][-1] * gathered_data["max_loss"] > gathered_data[company]["money_spent"]:
+        #             api.submit_order(symbol=f"{gathered_data[company]['symbol']}", qty=1, side='sell', type='market', time_in_force='day')
+        #             gathered_data["ernings"][company] +=  gathered_data[company]["historical_data"][-1] - gathered_data[company]["money_spent"]
+        #             gathered_data["ennings"]["total"] += gathered_data["ernings"][company]
+        #             gathered_data["percentages"][company] = round((gathered_data[company]["historical_data"][-1] / gathered_data[company]["money_spent"] - 1) * 100)
+        #             gathered_data["percentages"]["total"] = gathered_data["percentages"]["total"] + gathered_data["percentages"][company]
+        #             gathered_data[company]["money_spent"] = 0
+        #             gathered_data[company]["Log"].append(f"Sold {company} at {gathered_data[company]['historical_data'][-1]} at {date}")
 
-            except: 
-                print_colored("Faild to make trades", "red")
-                t.sleep(30)
+        #     except: 
+        #         print_colored("Faild to make trades", "red")
+        #         t.sleep(30)
             
-            os.system("clear || cls")
-            print_colored("Trades made", "magenta")
-            t.sleep(3)
+        #     os.system("clear || cls")
+        #     print_colored("Trades made", "magenta")
+        #     t.sleep(3)
 
         ### Show data and trades ###
         os.system("clear || cls")
@@ -354,7 +380,6 @@ def main_loop(running, gathered_data, companys_array, starting_money, money, dat
             for n in range(60):
                 print(f"\033[1mTime left: {60-n} min\033[0m", end="\r")
                 t.sleep(60)
-
 
 if __name__ == "__main__":
     main_loop_thread = threading.Thread(target=main_loop, args=(running, gathered_data, companys_array, starting_money, money, date, hour_index),  daemon=True)

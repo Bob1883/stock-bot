@@ -161,9 +161,9 @@ def web_scraping_main(companys_array, gathered_data, end_date, NEWS_API_KEY, api
         os.system("clear || cls")
         print_colored(f"Checking {company}", "green")
 
-        gathered_data = articles_check(company, companys_array, gathered_data, NEWS_API_KEY, end_date)
+        # gathered_data = articles_check(company, companys_array, gathered_data, NEWS_API_KEY, end_date)
         gathered_data = get_historical_data(company, end_date, api, gathered_data)
-        gathered_data = get_political_data(end_date, company, gathered_data)
+        # gathered_data = get_political_data(end_date, company, gathered_data)
         if end_date == datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+00:00'):
             gathered_data = get_bot_predictions(company, gathered_data)
 
