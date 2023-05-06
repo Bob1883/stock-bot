@@ -11,7 +11,7 @@ gathered_data = {
     "tesla": {
         "symbol": "TSLA",
         "news": [],
-        "traders": [],
+        "traders": 0,
         "historical_data": [],
         "popularity": 0,
         "money_spent": 0,
@@ -19,7 +19,7 @@ gathered_data = {
     "applied materials": {
         "symbol": "AMAT",           
         "news": [],
-        "traders": [],
+        "traders": 0,
         "historical_data": [],
         "popularity": 0,
         "money_spent": 0,
@@ -27,7 +27,7 @@ gathered_data = {
     "Nvidia": {
         "symbol": "NVDA",
         "news": [],
-        "traders": [],
+        "traders": 0,
         "historical_data": [],
         "popularity": 0,
         "money_spent": 0,
@@ -35,7 +35,7 @@ gathered_data = {
     "Lam Research": {
         "symbol": "LRCX",
         "news": [],
-        "traders": [],
+        "traders": 0,
         "historical_data": [],
         "popularity": 0,
         "money_spent": 0,
