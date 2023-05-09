@@ -1,7 +1,7 @@
 A stock bot with website made in python and flutter. 
 
 
-Website: https://fabulous-ganache-c24dfb.netlify.app/#/
+Website: https://hal-9000.netlify.app/#/
 
 Guest password: guest
 
